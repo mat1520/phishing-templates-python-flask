@@ -250,9 +250,6 @@
                     <div class="info-label">Nombre del Sitio:</div>
                     <div class="info-value">{{ site_name }}</div>
                     
-                    <div class="info-label">Puerto:</div>
-                    <div class="info-value">{{ site_data.port }}</div>
-                    
                     <div class="info-label">URL de Acceso:</div>
                     <div class="info-value url-display">{{ site_data.url }}</div>
                     
@@ -261,6 +258,9 @@
                     
                     <div class="info-label">Estado:</div>
                     <div class="info-value" style="color: #28a745; font-weight: bold;">🟢 ACTIVO</div>
+                    
+                    <div class="info-label">Tipo:</div>
+                    <div class="info-value">Ruta dedicada (/phish/{{ site_name }}/)</div>
                 </div>
             </div>
             

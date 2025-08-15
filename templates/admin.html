@@ -335,12 +335,13 @@
             }
         }
         
-        function showExtraData(data) {
+        function showExtraData(element) {
+            const data = element.getAttribute('data-extra');
             try {
                 const parsedData = JSON.parse(data);
                 let formattedData = '';
                 for (const [key, value] of Object.entries(parsedData)) {
-                    formattedData += `${key}: ${value}\n`;
+                    formattedData += key + ': ' + value + '\n';
                 }
                 alert('Datos adicionales del formulario:\n\n' + formattedData);
             } catch (e) {

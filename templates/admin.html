@@ -259,6 +259,7 @@
                 </select>
                 <button onclick="refreshData()">🔄 Actualizar</button>
                 <button onclick="clearFilter()">🧹 Limpiar Filtro</button>
+                <button onclick="toggleAllPasswords()">👁️ Mostrar/Ocultar todas</button>
             </div>
             
             {% if credentials %}
@@ -292,8 +293,8 @@
                         </td>
                         <td>
                             {% if cred.password %}
-                            <span class="password-field" onclick="togglePassword(this)" data-password="{{ cred.password }}">
-                                ••••••••
+                            <span class="password-field" onclick="togglePassword(this)" data-password="{{ cred.password }}" style="background: #d4edda; cursor: pointer; padding: 2px 6px; border-radius: 3px;">
+                                {{ cred.password }}
                             </span>
                             {% else %}
                             <span style="color: #6c757d;">No capturado</span>
@@ -324,14 +325,46 @@
     </div>
     
     <script>
+        function toggleAllPasswords() {
+            const passwordFields = document.querySelectorAll('.password-field');
+            let allVisible = true;
+            
+            // Verificar si todas están visibles
+            passwordFields.forEach(field => {
+                if (field.textContent === '••••••••') {
+                    allVisible = false;
+                }
+            });
+            
+            // Alternar todas al estado opuesto
+            passwordFields.forEach(field => {
+                const password = field.getAttribute('data-password');
+                if (allVisible) {
+                    // Ocultar todas
+                    field.textContent = '••••••••';
+                    field.style.background = '#fff3cd';
+                    field.title = 'Clic para mostrar contraseña';
+                } else {
+                    // Mostrar todas
+                    field.textContent = password;
+                    field.style.background = '#d4edda';
+                    field.title = 'Clic para ocultar contraseña';
+                }
+            });
+        }
+
         function togglePassword(element) {
             const password = element.getAttribute('data-password');
-            if (element.textContent === '••••••••') {
-                element.textContent = password;
-                element.style.background = '#d4edda';
-            } else {
+            if (element.textContent === password) {
+                // Ocultar contraseña
                 element.textContent = '••••••••';
                 element.style.background = '#fff3cd';
+                element.title = 'Clic para mostrar contraseña';
+            } else {
+                // Mostrar contraseña
+                element.textContent = password;
+                element.style.background = '#d4edda';
+                element.title = 'Clic para ocultar contraseña';
             }
         }
         

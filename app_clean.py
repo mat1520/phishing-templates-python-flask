@@ -121,7 +121,7 @@ def index():
     for site in sites:
         site['logo'] = logo_map.get(site['name'].lower(), 'default.png')
     
-    return render_template('index.html', sites=sites, total_sites=len(sites))
+    return render_template('index_dark.html', sites=sites, total_sites=len(sites))
 
 @app.route('/deploy/<site_name>')
 def deploy_site(site_name):
@@ -147,7 +147,7 @@ def site_status(site_name):
     if site_name not in deployed_sites:
         return redirect(url_for('deploy_site', site_name=site_name))
     
-    return render_template('site_status.html', site_name=site_name)
+    return render_template('site_status_dark.html', site_name=site_name)
 
 @app.route('/phish/<site_name>/')
 def serve_phishing_site_root(site_name):
@@ -268,7 +268,7 @@ def admin():
         })
         sites.add(cred[1])
     
-    return render_template('admin.html', 
+    return render_template('admin_dark.html', 
                          credentials=formatted_credentials, 
                          sites=sorted(sites),
                          total_credentials=len(formatted_credentials))

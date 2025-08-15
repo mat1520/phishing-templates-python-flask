@@ -303,7 +303,7 @@
                         <td class="timestamp">{{ cred.timestamp }}</td>
                         <td>
                             {% if cred.extra_data %}
-                            <span class="extra-data" onclick="showExtraData({{ cred.extra_data|tojson }})">
+                            <span class="extra-data" onclick="showExtraData(this)" data-extra="{{ cred.extra_data|e }}">
                                 Ver datos adicionales
                             </span>
                             {% else %}

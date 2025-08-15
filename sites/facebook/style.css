@@ -1,0 +1,254 @@
+/* Facebook Login Page CSS */
+body {
+    background-color: #f0f2f5;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.container {
+    width: 980px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 112px 0 216px;
+}
+
+.left-side {
+    flex: 1;
+    padding-right: 32px;
+}
+
+.facebook-logo {
+    width: 301px;
+    height: 106px;
+    margin: -28px 0 16px;
+}
+
+.facebook-logo svg {
+    color: #1877f2;
+}
+
+.tagline {
+    font-size: 28px;
+    font-weight: normal;
+    line-height: 32px;
+    width: 500px;
+    margin: 0;
+    color: #1c1e21;
+}
+
+.right-side {
+    flex-shrink: 0;
+}
+
+.login-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .1), 0 8px 16px rgba(0, 0, 0, .1);
+    padding: 20px;
+    width: 396px;
+    box-sizing: border-box;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-field {
+    border: 1px solid #dddfe2;
+    border-radius: 6px;
+    font-size: 17px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    background-color: #fff;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.input-field:focus {
+    border-color: #1877f2;
+    box-shadow: 0 0 0 2px #e7f3ff;
+    outline: none;
+}
+
+.login-button {
+    background-color: #1877f2;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 12px;
+    margin: 6px 0 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.login-button:hover {
+    background-color: #166fe5;
+}
+
+.forgotten-password {
+    color: #1877f2;
+    font-size: 14px;
+    text-align: center;
+    text-decoration: none;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.forgotten-password:hover {
+    text-decoration: underline;
+}
+
+.divider {
+    border-top: 1px solid #dadde1;
+    margin: 20px 16px;
+}
+
+.create-account {
+    background-color: #42b883;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: bold;
+    padding: 12px 16px;
+    cursor: pointer;
+    margin: 0 auto;
+    display: block;
+    transition: background-color 0.2s;
+}
+
+.create-account:hover {
+    background-color: #36a169;
+}
+
+.create-page {
+    text-align: center;
+    margin-top: 28px;
+    font-size: 14px;
+    color: #1c1e21;
+}
+
+.create-page a {
+    color: #1c1e21;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.create-page a:hover {
+    text-decoration: underline;
+}
+
+/* Footer */
+.footer {
+    background-color: #fff;
+    padding: 20px 0;
+    margin-top: auto;
+}
+
+.footer-content {
+    width: 980px;
+    margin: 0 auto;
+}
+
+.language-list {
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    margin: 0 0 8px;
+    padding: 0;
+}
+
+.language-list li {
+    margin-right: 12px;
+    margin-bottom: 3px;
+}
+
+.language-list a {
+    color: #8a8d91;
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.language-list a:hover {
+    text-decoration: underline;
+}
+
+.footer-links {
+    border-top: 1px solid #dddfe2;
+    padding-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    margin: 0;
+    padding-top: 8px;
+}
+
+.footer-links li {
+    margin-right: 16px;
+    margin-bottom: 8px;
+}
+
+.footer-links a {
+    color: #8a8d91;
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+}
+
+.copyright {
+    color: #8a8d91;
+    font-size: 11px;
+    margin-top: 20px;
+}
+
+/* Responsive */
+@media (max-width: 1040px) {
+    .container {
+        width: 100%;
+        padding: 72px 16px;
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .left-side {
+        padding-right: 0;
+        margin-bottom: 40px;
+    }
+    
+    .tagline {
+        width: auto;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    .footer-content {
+        width: 100%;
+        padding: 0 16px;
+    }
+}
+
+@media (max-width: 432px) {
+    .login-card {
+        width: 100%;
+        box-shadow: none;
+        background-color: transparent;
+        padding: 0;
+    }
+    
+    .input-field {
+        font-size: 16px;
+    }
+}

